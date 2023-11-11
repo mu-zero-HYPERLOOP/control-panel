@@ -1,0 +1,49 @@
+
+baudrate : 10
+
+nodes: 
+  secu: 
+    description: Sensor Electronics Control Unit
+    object_dictionary:
+      cpu_temperature:
+        type : d8<-10..100>
+        access : global
+        description : CPU Temperature
+        unit : °C
+      bcu_temperature:
+        type : d8<-10..100>
+        access : global
+        description : BCU Temperature
+        unit : °C
+    tx_streams:
+      ecu_temperatures:
+        description : Stream of CPU temperatures of the ECU
+        interval : 10s
+        mapping:
+          - cpu_temperature
+          - bcu_temperature
+    commands:
+      configure_temperatures:
+        description: Samples the temperature multiple times to configure the filters.
+        arguments: 
+          - sample_count: u32
+        callee:
+          - master
+  master:
+    description : Master node running the main state machine
+    object_dictionary:
+      secu_cpu_temperature:
+        type : d8<-10..100>
+        access : global
+        description : CPU Temperature of the SECU.
+    rx_streams:
+      secu:
+        ecu_temperatures:
+          cpu_temperature : secu_cpu_temperature
+          bcu_temperature : secu_bcu_temperature
+
+
+
+      
+
+

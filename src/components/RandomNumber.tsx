@@ -36,6 +36,23 @@ function RandomNumber() {
     };
   });
 
+  useEffect(() => {
+    // the generic argument of listen is the type of the payload.
+    let unsubscribe = listen("rx-frame", (event) => {
+      console.log("rx-frame event");
+      let number = event.payload;
+      console.log(number)
+      // by calling set number we tell react to update the DOM.
+      // compared to just calling number = 10; this would just update the variable 
+      // but not tell react to actually update.
+    });
+    // the lambda returned will be executed on cleanup of the effect.
+    return () => {
+       // unsubscribe from listeners
+       unsubscribe.then(f => f());
+    };
+  });
+
   return <p>{number}</p>
 }
 

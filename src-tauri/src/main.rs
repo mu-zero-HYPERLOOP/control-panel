@@ -1,9 +1,15 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::{sync::Arc, time::Duration};
 use tauri::Manager;
+use std::{boxed::Box, sync::Arc};
+use serialize::serialized_frame::SerializedFrame;
+
+use crate::can::CNL;
+
+
+mod can;
+mod serialize;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -20,17 +26,19 @@ fn main() {
             println!("Hello, Tauri!");
             let app_handle = app.handle();
             tauri::async_runtime::spawn(async move {
-                println!("Hello, Tokio task");
-                let mut rng = {
-                    let rng = rand::thread_rng();
-                    StdRng::from_rng(rng).unwrap()
-                };
+                // read config
+                let network = can_yaml_config_rs::parse_yaml_config_from_file("./test.yaml").unwrap();
+                // start CaNetwork Layer
+                let mut cnl = CNL::create(&network);
+                cnl.start();
+                
                 loop {
-                    tokio::time::sleep(Duration::from_millis(1000)).await;
-                    let x = rng.gen::<u32>();
-                    println!("emit event : {x}");
-                    app_handle.emit_all("random-integer", x).unwrap();
+                    let frame = cnl.get_rx_message_receiver().recv().await.unwrap();
+                    app_handle.emit_all("rx-frame", SerializedFrame::from(frame)).unwrap();
+                    println!("received frame");
                 }
+
+            
             });
             Ok(())
         })
