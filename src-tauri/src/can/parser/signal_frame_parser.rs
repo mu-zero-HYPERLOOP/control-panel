@@ -38,8 +38,8 @@ impl SignalParser {
             } => {
                 let value = data
                     .overflowing_shr(64 - byte_offset - byte_size)
-                    .0
-                    .overflowing_shr(64 - byte_size)
+                    .0 & 
+                    (0xFFFFFFFFFFFFFFFF as u64).overflowing_shr(64 - byte_size)
                     .0;
 
                 Signal::new(signal_ref.clone(), SignalValue::Unsigned(value))
@@ -51,8 +51,8 @@ impl SignalParser {
             } => {
                 let value = data
                     .overflowing_shr(64 - byte_offset - byte_size)
-                    .0
-                    .overflowing_shr(64 - byte_size)
+                    .0 & 
+                    (0xFFFFFFFFFFFFFFFF as u64).overflowing_shr(64 - byte_size)
                     .0;
 
                 let ivalue = unsafe { std::mem::transmute::<u64, i64>(value) };
@@ -68,8 +68,8 @@ impl SignalParser {
             } => {
                 let value = data
                     .overflowing_shr(64 - byte_offset - byte_size)
-                    .0
-                    .overflowing_shr(64 - byte_size)
+                    .0 & 
+                    (0xFFFFFFFFFFFFFFFF as u64).overflowing_shr(64 - byte_size)
                     .0;
                 let dvalue = value as f64 * scale - offset;
 

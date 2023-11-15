@@ -1,12 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
-use std::{boxed::Box, sync::Arc};
 use serialize::serialized_frame::SerializedFrame;
+use std::{boxed::Box, sync::Arc};
+use tauri::Manager;
 
 use crate::can::CNL;
-
 
 mod can;
 mod serialize;
@@ -27,18 +26,18 @@ fn main() {
             let app_handle = app.handle();
             tauri::async_runtime::spawn(async move {
                 // read config
-                let network = can_yaml_config_rs::parse_yaml_config_from_file("./test.yaml").unwrap();
+                let network =
+                    can_yaml_config_rs::parse_yaml_config_from_file("./test.yaml").unwrap();
                 // start CaNetwork Layer
                 let mut cnl = CNL::create(&network);
                 cnl.start();
-                
+
                 loop {
                     let frame = cnl.get_rx_message_receiver().recv().await.unwrap();
-                    app_handle.emit_all("rx-frame", SerializedFrame::from(frame)).unwrap();
-                    println!("received frame");
+                    app_handle
+                        .emit_all("rx-frame", SerializedFrame::from(frame))
+                        .unwrap();
                 }
-
-            
             });
             Ok(())
         })

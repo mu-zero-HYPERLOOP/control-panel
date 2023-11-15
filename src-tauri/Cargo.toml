@@ -22,6 +22,7 @@ libc = "0.2.149"
 nix = {version = "0.27.1", features = ["net"] }
 can-config-rs = { git = "https://github.com/mu-zero-HYPERLOOP/can-config-rs.git" }
 can-yaml-config-rs = { git = "https://github.com/mu-zero-HYPERLOOP/can-yaml-config-rs.git" }
+sorted-vec = "0.8.3"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
