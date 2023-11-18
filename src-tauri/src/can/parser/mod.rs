@@ -1,8 +1,8 @@
 
 use can_config_rs::config;
 
-use super::can::frame::CanError;
-use super::{can::frame::CanFrame, frame::Frame};
+use super::can_frame::CanError;
+use super::{can_frame::CanFrame, frame::Frame};
 use super::parser::signal_frame_parser::SignalFrameParser;
 use super::parser::error_frame_parser::ErrorFrameParser;
 use super::parser::type_frame_parser::TypeFrameParser;

@@ -1,5 +1,8 @@
+
+#[cfg(feature="socket-can")]
 use libc::can_frame;
 
+#[cfg(feature="socket-can")]
 use libc::{CAN_EFF_FLAG, CAN_EFF_MASK, CAN_RTR_FLAG, CAN_SFF_MASK};
 
 #[derive(Debug)]
@@ -17,6 +20,11 @@ pub struct CanFrame {
     dlc: u8,
     data: u64,
 }
+
+unsafe impl Send for CanFrame {}
+unsafe impl Sync for CanFrame {}
+unsafe impl Send for CanError {}
+unsafe impl Sync for CanError {}
 
 impl CanFrame {
     pub fn new(id: u32, ide: bool, rtr: bool, dlc: u8, data : u64) -> Self {
@@ -48,6 +56,8 @@ impl CanFrame {
             data: 0,
         }
     }
+
+    #[cfg(feature="socket-can")]
     pub fn from_raw(frame: can_frame) -> Self {
         let ide = frame.can_id & CAN_EFF_FLAG != 0;
         let id = if ide {
@@ -63,6 +73,8 @@ impl CanFrame {
             data: u64::from_be_bytes(frame.data),
         }
     }
+
+    #[cfg(feature="socket-can")]
     pub fn to_raw(&self) -> can_frame {
         let mut canframe : can_frame= unsafe {std::mem::zeroed()};
         if self.ide {

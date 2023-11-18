@@ -1,5 +1,5 @@
 use crate::can::{
-    can::frame::CanFrame,
+    can_frame::CanFrame,
     frame::{undefined_frame::UndefinedFrame, Frame},
 };
 

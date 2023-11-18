@@ -2,11 +2,11 @@
 use tokio::{sync::{mpsc::Receiver, Mutex}, sync::mpsc::Sender, runtime::Handle};
 
 use self::{
-    frame::{CanError, CanFrame},
     socket::OwnedCanSocket,
 };
 
-pub mod frame;
+use super::can_frame::{CanFrame, CanError};
+
 mod socket;
 
 pub enum CanModule {
@@ -65,7 +65,8 @@ impl CAN {
     }
 
     pub async fn receive(&self) -> Result<CanFrame, CanError> {
-        let frame = self.rx.lock().await.recv().await;
+        let frame = self.rx.lock().await
+            .recv().await;
         match frame {
             Some(frame) => Ok(frame),
             None => Err(CanError::Disconnect(format!("can receive thread closed rx channel")))

@@ -1,5 +1,6 @@
+use std::mem;
+
 use libc::{c_int, c_void, can_frame, read, sa_family_t, sockaddr_can, write};
-use std::{mem, os::fd::OwnedFd};
 
 pub use libc::{
     AF_CAN, CANFD_MTU, CAN_EFF_FLAG, CAN_EFF_MASK, CAN_ERR_FLAG, CAN_MTU, CAN_RAW,
@@ -7,7 +8,7 @@ pub use libc::{
     CAN_RAW_RECV_OWN_MSGS, CAN_RTR_FLAG, CAN_SFF_MASK, PF_CAN, SOCK_RAW, SOL_CAN_BASE, SOL_CAN_RAW,
 };
 
-use super::frame::{CanError, CanFrame};
+use crate::can::can_frame::{CanError, CanFrame};
 
 
 #[derive(Clone)]

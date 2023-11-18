@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::can;
-
 use super::frame::Frame;
 use super::parser::MessageParser;
 use super::parser::error_frame_parser::ErrorFrameParser;
@@ -39,7 +37,7 @@ impl RxCom {
             rx,
         }
     }
-    pub fn start(&mut self, can : &Arc<can::CAN>) {
+    pub fn start(&mut self, can : &Arc<super::CAN>) {
         let can_receiver = Arc::new(CanReceiver::new(can, &self.parser_lookup, &self.tx));
         tokio::spawn(async move {
             can_receiver.start().await;
@@ -52,14 +50,14 @@ impl RxCom {
 }
 
 pub struct CanReceiver {
-    can : Arc<can::CAN>,
+    can : Arc<super::CAN>,
     parser_lookup : Arc<HashMap<(u32, bool), MessageParser>>,
     tx : Sender<Frame>,
 
 }
 
 impl CanReceiver {
-    pub fn new(can : &Arc<can::CAN>, parser_lookup : &Arc<HashMap<(u32, bool),MessageParser>>, tx : &Sender<Frame>) -> Self {
+    pub fn new(can : &Arc<super::CAN>, parser_lookup : &Arc<HashMap<(u32, bool),MessageParser>>, tx : &Sender<Frame>) -> Self {
         Self {
             can : can.clone(),
             parser_lookup : parser_lookup.clone(),

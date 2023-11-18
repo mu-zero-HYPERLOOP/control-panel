@@ -1,7 +1,7 @@
 use can_config_rs::config;
 
 use crate::can::{
-    can::frame::CanFrame,
+    can_frame::CanFrame,
     frame::{
         signal_frame::{Signal, SignalFrame, SignalValue},
         Frame,
