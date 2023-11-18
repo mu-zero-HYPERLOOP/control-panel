@@ -38,7 +38,7 @@
     },
     "windows": [
       {
-        "fullscreen": true,
+        "fullscreen": false,
         "resizable": true,
         "title": "Control Panel",
         "width": 800,

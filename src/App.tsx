@@ -1,10 +1,10 @@
 import "./App.css";
-import NavTabs from "./pages/NavTabs";
+import DashBoard from "./pages/DashBoard";
 
 function App() {
 
   return (
-      <NavTabs/>
+    <DashBoard/>
   );
 }
 
