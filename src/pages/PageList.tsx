@@ -1,7 +1,9 @@
 import * as React from 'react';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import InboxIcon from '@mui/icons-material/Inbox';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import GamesIcon from '@mui/icons-material/Games';
+
 import {
     Link as RouterLink,
     LinkProps as RouterLinkProps,
@@ -36,7 +38,7 @@ function ListItemButtonLink(props: ListItemLinkProps) {
 
 export const ListRouter = (
     <React.Fragment>
-            <ListItemButtonLink to="/" primary="Control Panel" icon={<InboxIcon/>}/>
-            <ListItemButtonLink to="/DebugPanel" primary="Debug Panel" icon={<InboxIcon/>}/>
+            <ListItemButtonLink to="/" primary="Control Panel" icon={<GamesIcon/>}/>
+            <ListItemButtonLink to="/DebugPanel" primary="Debug Panel" icon={<TerminalIcon/>}/>
     </React.Fragment>
     );

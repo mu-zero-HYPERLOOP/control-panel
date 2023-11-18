@@ -13,9 +13,11 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import RouteElement from './RouteElement';
 import { ListRouter } from './PageList';
+import { Button } from '@mui/material';
+import { invoke } from '@tauri-apps/api';
 
 
-const drawerWidth: number = 240;
+const drawerWidth: number = 220;
 
 interface AppBarProps extends MuiAppBarProps {
     open?: boolean;
@@ -65,7 +67,16 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
     }),
 );
 
-const defaultTheme = createTheme();
+const theme = createTheme({
+    palette: {
+        secondary: {
+            main: '#E3D026',
+            light: '#E9DB5D',
+            dark: '#A29415',
+            contrastText: '#242105',
+        },
+    },
+});
 
 
 export default function Dashboard() {
@@ -75,7 +86,7 @@ export default function Dashboard() {
     };
 
     return (
-        <ThemeProvider theme={defaultTheme}>
+        <ThemeProvider theme={theme}>
             <Box sx={{ display: 'flex' }}>
                 <CssBaseline />
                 <AppBar position="absolute" open={open}>
@@ -105,6 +116,9 @@ export default function Dashboard() {
                         >
                             Dashboard
                         </Typography>
+                        <Button variant="contained" size="large" color="secondary" onClick={() => {
+                            //invoke('connect');
+                        }}>Connect</Button>
                     </Toolbar>
                 </AppBar>
                 <Drawer variant="permanent" open={open}>
