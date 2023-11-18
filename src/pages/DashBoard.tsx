@@ -11,11 +11,8 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import RouteElement from './RouteElement';
 import { ListRouter } from './PageList';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import ControlPanel from './ControlPanel';
-import DebugPanel from './DebugPanel';
-import { StaticRouter } from 'react-router-dom/server';
 
 
 const drawerWidth: number = 240;
@@ -61,37 +58,15 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
                 }),
                 width: theme.spacing(7),
                 [theme.breakpoints.up('sm')]: {
-                    width: theme.spacing(9),
+                    width: theme.spacing(8),
                 },
             }),
         },
     }),
 );
 
-// TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
 
-function Router(props: { children?: React.ReactNode }) {
-    const { children } = props;
-    if (typeof window === 'undefined') {
-        return <StaticRouter location="/">{children}</StaticRouter>;
-    }
-
-    return (
-        <MemoryRouter initialEntries={['/']} initialIndex={0}>
-            {children}
-        </MemoryRouter>
-    );
-}
-
-function Content() {
-    const location = useLocation();
-    return (
-        <Typography variant="body2" sx={{ pb: 2 }} color="text.secondary">
-            Current route: {location.pathname}
-        </Typography>
-    );
-}
 
 export default function Dashboard() {
     const [open, setOpen] = React.useState(true);
@@ -100,7 +75,6 @@ export default function Dashboard() {
     };
 
     return (
-        <Router>
         <ThemeProvider theme={defaultTheme}>
             <Box sx={{ display: 'flex' }}>
                 <CssBaseline />
@@ -138,8 +112,8 @@ export default function Dashboard() {
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'flex-end',
-                            px: [1],
+                            justifyContent: 'flex-start',
+                            px: [2],
                         }}
                     >
                         <IconButton onClick={toggleDrawer}>
@@ -164,17 +138,11 @@ export default function Dashboard() {
                     }}
                 >
                     <Toolbar />
-
                         <Box sx={{ width: '100%' }}>
-                            <Routes>
-                                <Route index element={<ControlPanel />} />
-                                <Route path="DebugPanel" element={<DebugPanel />} />
-                                <Route path="*" element={<Content />} />
-                            </Routes>
+                            <RouteElement/>
                         </Box>
                 </Box>
             </Box>
         </ThemeProvider>
-        </Router>
     );
 }
