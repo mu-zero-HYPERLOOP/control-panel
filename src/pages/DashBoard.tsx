@@ -12,7 +12,7 @@ import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import RouteElement from './RouteElement';
-import {ListRouter} from './PageList';
+import {RouterList, NodeList} from './PageList';
 import {Button} from '@mui/material';
 import logo from '../assets/mu-zero-hyperloop-logo.png'
 import {invoke} from '@tauri-apps/api';
@@ -75,6 +75,8 @@ export default function Dashboard() {
         setOpen(!open);
     };
 
+    const nodes  = ["Hello", "World", "Test"]
+
     return (
         <Box sx={{display: 'flex'}}>
             <CssBaseline/>
@@ -135,7 +137,8 @@ export default function Dashboard() {
                 </Toolbar>
                 <Divider/>
                 <List component="nav">
-                    {ListRouter}
+                    {RouterList}
+                    <>{open == true ? <><Divider sx={{ my: 1 }} /> {NodeList(nodes)}</>: null}</>
                 </List>
             </Drawer>
             <Box
