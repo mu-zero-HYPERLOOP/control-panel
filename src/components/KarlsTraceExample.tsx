@@ -1,4 +1,4 @@
-import { Box, Collapse, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, styled, withStyles } from "@mui/material";
+import { Box, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled } from "@mui/material";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
 
@@ -6,12 +6,10 @@ import React, { useEffect, useState } from "react";
 import Frame from "../types/Frame";
 import FrameName from "./FrameName";
 import FrameId from "./FrameId";
-import FrameDescription from "./FrameDescription";
 import FrameData from "./FrameData";
 import FrameDlc from "./FrameDlc";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { Crop75 } from "@mui/icons-material";
 import { TypeFrame } from "../types/TypeFrame";
 import TypeFrameDetail from "./TypeFrameDetail";
 import { SignalFrame } from "../types/SignalFrame";
