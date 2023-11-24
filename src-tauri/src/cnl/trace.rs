@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Mutex, time::{Instant, Duration}};
+use std::{collections::HashMap, time::{Instant, Duration}};
 
 use serde::{Serialize, ser::SerializeMap};
 
@@ -9,7 +9,7 @@ use super::frame::{Frame, UniqueFrameKey};
 pub struct TraceObject {
     observable: ObservableData<TraceObjectEvent>,
         // saves last frame of each kind
-    trace: Mutex<HashMap<UniqueFrameKey, TraceObjectEvent>>,
+    trace: tokio::sync::Mutex<HashMap<UniqueFrameKey, TraceObjectEvent>>,
     start_time: Instant,
 }
 
@@ -22,7 +22,7 @@ impl TraceObject {
                 tokio::time::Duration::from_millis(200),
                 2048,
             ),
-            trace: Mutex::new(HashMap::new()),
+            trace: tokio::sync::Mutex::new(HashMap::new()),
             start_time: Instant::now(),
         }
     }
@@ -31,37 +31,49 @@ impl TraceObject {
         // TODO Issue #7 
         // We should calculate a timestamp here and forward it correctly to the view
         let key = frame.unique_key();
-        let prev = self
+        let arrive_instant = Instant::now();
+        let mut unlocked_trace = self
             .trace
             .lock()
-            .expect("failed to acquire TraceObject lock")
-            .insert(key, frame.clone());
-        match prev {
-            Some(prev) if prev == frame => (),
-            _ => {
-                // if nothing is listening to the observable the frame data is dropped completely
-                // otherwise the data is forwarded to the view!
-                self.observable
-                    .notify(TraceObjectEvent(frame))
-                    .await;
-            }
-        }
+            .await;
+        let prev = unlocked_trace.get_mut(&key);
+        let timestamp = arrive_instant.duration_since(self.start_time.clone());
+        let trace_object = match prev {
+            Some(prev)  => {
+                let trace_object = TraceObjectEvent { 
+                    frame, 
+                    timestamp, 
+                    delta_time: timestamp - prev.timestamp,
+                };
+                *prev = trace_object.clone();
+                trace_object
+            },
+            None => {
+                let trace_object = TraceObjectEvent { 
+                    frame, 
+                    timestamp, 
+                    delta_time: timestamp,
+                };
+                unlocked_trace.insert(key, trace_object.clone());
+                trace_object
+            },
+        };
+        drop(unlocked_trace);
+        self.observable.notify(trace_object).await;
     }
 
     pub fn listen(&self) {
         self.observable.listen();
     }
 
-    pub fn get(&self) -> Vec<TraceObjectEvent> {
+    pub async fn get(&self) -> Vec<TraceObjectEvent> {
         let trace_state : Vec<TraceObjectEvent> = self.trace
                 .lock()
-                .expect("failed to acquire TraceObject lock")
+                .await
                 .iter()
-                .map(|(_key, value)| TraceObjectEvent {
-                    frame: value.clone(),
-                    timestamp: Instant::now().duration_since(self.start_time),
-                    delta_time: ,
-                })
+                .map(|(_key, value)| 
+                    value.clone()
+                )
                 .collect();
         trace_state
     }
@@ -80,15 +92,15 @@ pub struct TraceObjectEvent {
 
 impl Serialize for TraceObjectEvent {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut ser_map = serializer.serialize_map(Some(3))?;
-        ser_map.serialize_entry("frame", &self.frame);
-        ser_map.serialize_entry("timestamp" , 
-                                &(self.timestamp.as_millis() % u64::MAX as u128));
+        where
+            S: serde::Serializer,
+        {
+            let mut ser_map = serializer.serialize_map(Some(3))?;
+            ser_map.serialize_entry("frame", &self.frame)?;
+            ser_map.serialize_entry("timestamp" , 
+                                    &(self.timestamp.as_millis() % u64::MAX as u128))?;
         ser_map.serialize_entry("delta_time" , 
-                                &(self.delta_time.as_micros() % u64::MAX as u128));
+                                &(self.delta_time.as_micros() % u64::MAX as u128))?;
 
         ser_map.end()
     }
