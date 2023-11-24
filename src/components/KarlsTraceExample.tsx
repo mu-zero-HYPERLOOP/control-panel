@@ -8,6 +8,7 @@ import FrameName from "./FrameName";
 import FrameId from "./FrameId";
 import FrameData from "./FrameData";
 import FrameDlc from "./FrameDlc";
+import { TraceObjectEvent } from "../types/TraceObjectEvent";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { TypeFrame } from "../types/TypeFrame";
@@ -196,47 +197,50 @@ function KarlsTraceExample() {
   const [rows, setRows] = useState<Frame[]>([]);
   const [filteredRows, setFilteredRows] = useState<Frame[]>([]);
 
-  function handle_event(frame: Frame) {
+  function handle_event(event: TraceObjectEvent) {
     setRows((rows) => {
       let index = rows.findIndex((f) => {
-        if (f.TypeFrame != undefined && frame.TypeFrame != undefined) {
-          return f.TypeFrame.id === frame.TypeFrame.id &&
-            f.TypeFrame.ide === frame.TypeFrame.ide;
-        } else if (f.SignalFrame != undefined && frame.SignalFrame) {
-          return f.SignalFrame.id === frame.SignalFrame.id &&
-            f.SignalFrame.ide === frame.SignalFrame.ide;
-        } else if (f.UndefinedFrame != undefined && frame.UndefinedFrame != undefined) {
-          return f.UndefinedFrame.id === frame.UndefinedFrame.id &&
-            f.UndefinedFrame.ide === frame.UndefinedFrame.ide;
-        } else if (f.ErrorFrame != undefined && frame.ErrorFrame != undefined) {
-          return f.ErrorFrame.data === frame.ErrorFrame.data;
+        if (f.TypeFrame != undefined && event.frame.TypeFrame != undefined) {
+          return f.TypeFrame.id === event.frame.TypeFrame.id &&
+            f.TypeFrame.ide === event.frame.TypeFrame.ide;
+        } else if (f.SignalFrame != undefined && event.frame.SignalFrame) {
+          return f.SignalFrame.id === event.frame.SignalFrame.id &&
+            f.SignalFrame.ide === event.frame.SignalFrame.ide;
+        } else if (f.UndefinedFrame != undefined && event.frame.UndefinedFrame != undefined) {
+          return f.UndefinedFrame.id === event.frame.UndefinedFrame.id &&
+            f.UndefinedFrame.ide === event.frame.UndefinedFrame.ide;
+        } else if (f.ErrorFrame != undefined && event.frame.ErrorFrame != undefined) {
+          return f.ErrorFrame.data === event.frame.ErrorFrame.data;
         } else {
           return false;
         }
       });
       if (index == -1) {
         let new_rows = rows.slice();
-        new_rows.push(frame);
+        new_rows.push(event.frame);
         return new_rows;
       } else {
         let new_rows = rows.slice();
-        new_rows[index] = frame;
+        new_rows[index] = event.frame;
         return new_rows;
       }
     });
   }
 
   useEffect(() => {
-    invoke<Frame[]>("listen_to_trace").then((frames) => {
-      for (let frame of frames) {
-        console.log(frame);
-        handle_event(frame);
+    invoke<TraceObjectEvent[]>("listen_to_trace").then((traceObjectEvents) => {
+      for (let traceObjectEvent of traceObjectEvents) {
+        console.log("initial frame: " + traceObjectEvent.frame);
+        handle_event(traceObjectEvent);
       }
     });
 
-    let trace_event_listener = listen<Frame[]>("trace", (event) => {
-      for (let frame of event.payload) {
-        handle_event(frame);
+    let trace_event_listener = listen<TraceObjectEvent[]>("trace", (event) => {
+      console.log("trace listener triggered with:");
+      console.log(event.payload);
+      for (let traceObjectEvent of event.payload) {
+        console.log(traceObjectEvent);
+        handle_event(traceObjectEvent);
       }
     });
     return () => {
