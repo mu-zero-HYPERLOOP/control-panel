@@ -2,6 +2,6 @@
 
 export interface NetworkInformation {
   baudrate : number,
-  nodes : string[],
+  node_names : string[],
 }
 

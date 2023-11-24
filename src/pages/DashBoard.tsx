@@ -75,8 +75,6 @@ export default function Dashboard() {
         setOpen(!open);
     };
 
-    const nodes  = ["Hello", "World", "Test"]
-
     return (
         <Box sx={{display: 'flex'}}>
             <CssBaseline/>
@@ -138,7 +136,7 @@ export default function Dashboard() {
                 <Divider/>
                 <List component="nav">
                     {RouterList}
-                    <>{open == true ? <><Divider sx={{ my: 1 }} /> {NodeList(nodes)}</>: null}</>
+                    <>{open == true ? <><Divider sx={{ my: 1 }} /> {NodeList()}</>: null}</>
                 </List>
             </Drawer>
             <Box

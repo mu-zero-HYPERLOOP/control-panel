@@ -1,4 +1,3 @@
-import * as React from 'react';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import TerminalIcon from '@mui/icons-material/Terminal';
@@ -9,6 +8,10 @@ import clsx from 'clsx';
 import {Link as RouterLink, LinkProps as RouterLinkProps, useNavigate,} from 'react-router-dom';
 import {Box, ListItemButton, Typography} from '@mui/material';
 import {TreeItem, TreeItemContentProps, TreeItemProps, TreeView, useTreeItem} from '@mui/x-tree-view';
+import {NetworkInformation} from '../types/NetworkInformation';
+import {NodeInformation} from '../types/NodeInformation';
+import React, { useEffect, useState } from "react";
+import { invoke } from '@tauri-apps/api';
 
 interface ListItemLinkProps {
     icon?: React.ReactElement;
@@ -81,14 +84,13 @@ const CustomContent = React.forwardRef(function CustomContent(
 
     );
 });
-//
+
 const CustomTreeItem = React.forwardRef(function CustomTreeItem(
     props: TreeItemProps,
     ref: React.Ref<HTMLLIElement>,
 ) {
     return <TreeItem ContentComponent={CustomContent} {...props} ref={ref}/>;
 });
-
 
 const Link = React.forwardRef<HTMLAnchorElement, RouterLinkProps>(function Link(
     itemProps,
@@ -117,7 +119,32 @@ export const RouterList = (
     </React.Fragment>
 );
 
-export function NodeList(nodes: string[]) {
+interface NodeName {
+    name: string,
+}
+
+function NodeEntries({name} : NodeName) {
+    const [entries, setEntries] = useState<string[]>([]);
+
+    useEffect(() => {
+        invoke<NodeInformation>("node_information", {node_name: name}).then((nodeInformation) => {
+            console.log(nodeInformation)
+            setEntries(nodeInformation.object_entries.concat(nodeInformation.commands))
+        });
+    }, []);
+    {/*Page name has to equal the nodeId!*/}
+    return(entries.map((entry) => <CustomTreeItem nodeId={name + "/" + entry} label={entry}></CustomTreeItem>));
+}
+
+export function NodeList() {
+    const [nodes, setNodes] = useState<string[]>([]);
+
+    useEffect(() => {
+        invoke<NetworkInformation>("network_information").then((networkInformation) => {
+            setNodes(networkInformation.node_names)
+        });
+    }, []);
+
     return (
         <React.Fragment>
             <Box sx={{minHeight: 180, flexGrow: 1, maxWidth: 300}}>
@@ -128,9 +155,7 @@ export function NodeList(nodes: string[]) {
                 >
                     {nodes.map((node) =>
                         <CustomTreeItem nodeId={node} label={node}>
-                            {/*Page name has to equal the nodeId!*/}
-                            <CustomTreeItem nodeId={node + "/Object"} label="Object"/>
-                            <CustomTreeItem nodeId={node + "/Command"} label="Command"/>
+                            <NodeEntries name={node}/>
                         </CustomTreeItem>)}
 
                 </TreeView>
