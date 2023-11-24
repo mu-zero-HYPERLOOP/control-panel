@@ -44,8 +44,6 @@ function Graph({name}: GraphProps) {
         console.log("graph destructor called");
         unsubscribe.then(f => f());
     };
-    // eventHande necessary as reactive dependency to re-register listener
-    // after it has been set
   }, []);
 
     return <LineChart width={1200} height={500} data={points}>
