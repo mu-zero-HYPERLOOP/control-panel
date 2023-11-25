@@ -11,7 +11,7 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import RouteElement from './RouteElement';
+import ShowPages from './ShowPages';
 import {ListEntries} from './PageList';
 import {Button} from '@mui/material';
 import logo from '../assets/mu-zero-hyperloop-logo.png'
@@ -152,7 +152,7 @@ export default function Dashboard() {
             >
                 <Toolbar/>
                 <Box sx={{width: '100%'}}>
-                    <RouteElement/>
+                    <ShowPages/>
                 </Box>
             </Box>
         </Box>

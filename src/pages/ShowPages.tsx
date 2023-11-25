@@ -11,7 +11,7 @@ function Content() {
         </Typography>
     );
 }
-function RouteElement() {
+function ShowPages() {
 
     return (
         <Routes>
@@ -22,4 +22,4 @@ function RouteElement() {
     );
 }
 
-export default RouteElement;
+export default ShowPages;

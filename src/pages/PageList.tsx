@@ -10,7 +10,7 @@ import {Box, Divider, ListItemButton, Typography} from '@mui/material';
 import {TreeItem, TreeItemContentProps, TreeItemProps, TreeView, useTreeItem} from '@mui/x-tree-view';
 import {NetworkInformation} from '../types/NetworkInformation';
 import {NodeInformation} from '../types/NodeInformation';
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { invoke } from '@tauri-apps/api';
 
 interface ListItemLinkProps {
@@ -126,12 +126,10 @@ interface NodeName {
 function NodeEntries({name} : NodeName) {
     const [entries, setEntries] = useState<string[]>([]);
 
-    useEffect(() => {
-        invoke<NodeInformation>("node_information", {node_name: name}).then((nodeInformation) => {
-            console.log(nodeInformation)
-            setEntries(nodeInformation.object_entries.concat(nodeInformation.commands))
-        });
-    }, []);
+    invoke<NodeInformation>("node_information", {node_name: name}).then((nodeInformation) => {
+        console.log(nodeInformation)
+        setEntries(nodeInformation.object_entries.concat(nodeInformation.commands))
+    });
     {/*Page name has to equal the nodeId!*/}
     return(entries.map((entry) => <CustomTreeItem nodeId={name + "/" + entry} label={entry}></CustomTreeItem>));
 }
@@ -139,9 +137,9 @@ function NodeEntries({name} : NodeName) {
 export function NodeList() {
     const [nodes, setNodes] = useState<string[]>([]);
 
-        invoke<NetworkInformation>("network_information").then((networkInformation) => {
-            setNodes(networkInformation.node_names)
-        });
+    invoke<NetworkInformation>("network_information").then((networkInformation) => {
+        setNodes(networkInformation.node_names)
+    });
 
 
     return (
