@@ -119,11 +119,7 @@ export const RouterList = (
     </React.Fragment>
 );
 
-interface NodeName {
-    name: string,
-}
-
-function NodeEntries({name} : NodeName) {
+function NodeEntries(name: string) {
     const [entries, setEntries] = useState<string[]>([]);
 
     invoke<NodeInformation>("node_information", {node_name: name}).then((nodeInformation) => {
@@ -140,7 +136,6 @@ export function NodeList() {
     invoke<NetworkInformation>("network_information").then((networkInformation) => {
         setNodes(networkInformation.node_names)
     });
-
 
     return (
         <React.Fragment>
@@ -162,7 +157,6 @@ export function NodeList() {
 }
 
 export function ListEntries(open: boolean) {
-
     let nodeList = NodeList()
 
     return(<>
