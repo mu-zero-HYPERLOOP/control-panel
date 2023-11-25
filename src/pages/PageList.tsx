@@ -6,7 +6,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import clsx from 'clsx';
 import {Link as RouterLink, LinkProps as RouterLinkProps, useNavigate,} from 'react-router-dom';
-import {Box, ListItemButton, Typography} from '@mui/material';
+import {Box, Divider, ListItemButton, Typography} from '@mui/material';
 import {TreeItem, TreeItemContentProps, TreeItemProps, TreeView, useTreeItem} from '@mui/x-tree-view';
 import {NetworkInformation} from '../types/NetworkInformation';
 import {NodeInformation} from '../types/NodeInformation';
@@ -139,11 +139,10 @@ function NodeEntries({name} : NodeName) {
 export function NodeList() {
     const [nodes, setNodes] = useState<string[]>([]);
 
-    useEffect(() => {
         invoke<NetworkInformation>("network_information").then((networkInformation) => {
             setNodes(networkInformation.node_names)
         });
-    }, []);
+
 
     return (
         <React.Fragment>
@@ -162,4 +161,14 @@ export function NodeList() {
             </Box>
         </React.Fragment>
     );
+}
+
+export function ListEntries(open: boolean) {
+
+    let nodeList = NodeList()
+
+    return(<>
+        {RouterList}
+        <>{open == true ? <><Divider sx={{ my: 1 }} /> {nodeList}</>: null}</>
+    </>);
 }
