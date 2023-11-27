@@ -1,6 +1,11 @@
+import { NodeInformation } from "../types/NodeInformation";
 
-function NodePanel({name}) {
-    return <h1>Hello {name}</h1>;
+interface NodePanelProps {
+  node : NodeInformation
+}
+
+function NodePanel({node} : NodePanelProps) {
+    return <h1>Hello {node.name}</h1>;
 };
 
 export default NodePanel

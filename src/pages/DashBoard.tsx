@@ -135,7 +135,7 @@ export default function Dashboard() {
                 </Toolbar>
                 <Divider/>
                 <List component="nav">
-                    {ListEntries(open)}
+                    <ListEntries open={open}/>
                 </List>
             </Drawer>
             <Box
