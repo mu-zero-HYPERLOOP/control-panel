@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use serde::{ser::SerializeMap, Serialize};
+use serde::{ser::SerializeMap, Serialize, Serializer};
 use tauri::Manager;
 use tokio::sync::{mpsc, Mutex};
 
@@ -38,8 +38,10 @@ impl TraceObject {
             Some(prev) => {
                 let trace_object = TraceObjectEvent {
                     frame,
-                    timestamp,
-                    delta_time: timestamp.saturating_sub(prev.timestamp),
+                    timestamp: TraceTimestamp { timestamp },
+                    delta_time: TraceDeltaTime {
+                        delta_time: timestamp.saturating_sub(prev.timestamp.timestamp),
+                    },
                 };
                 *prev = trace_object.clone();
                 trace_object
@@ -47,8 +49,8 @@ impl TraceObject {
             None => {
                 let trace_object = TraceObjectEvent {
                     frame,
-                    timestamp,
-                    delta_time: timestamp,
+                    timestamp: TraceTimestamp { timestamp },
+                    delta_time: TraceDeltaTime { delta_time: timestamp },
                 };
                 unlocked_trace.insert(key, trace_object.clone());
                 trace_object
@@ -84,8 +86,68 @@ impl TraceObject {
 #[derive(Clone)]
 pub struct TraceObjectEvent {
     frame: Frame,
-    timestamp: Duration,  // time since start serialized as milli seconds
-    delta_time: Duration, // time since last frame serialized as micro-seconds
+    timestamp: TraceTimestamp,
+    delta_time: TraceDeltaTime,
+}
+
+#[derive(Clone)]
+pub struct TraceTimestamp {
+    timestamp: Duration,
+}
+
+#[derive(Clone)]
+pub struct TraceDeltaTime {
+    delta_time: Duration,
+}
+
+impl Serialize for TraceTimestamp {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut time_string = String::new();
+        let secs = self.timestamp.as_secs();
+        if secs > 0 {
+            time_string.push_str(&secs.to_string());
+            time_string.push_str("s ");
+        }
+        let millis = self.timestamp.subsec_millis();
+        if millis > 0 {
+            time_string.push_str(&millis.to_string());
+            time_string.push_str("ms ");
+        }
+        let nanos = self.timestamp.subsec_micros() % 1000;
+        if nanos > 0 {
+            time_string.push_str(&nanos.to_string());
+            time_string.push_str("\u{03bc}s");
+        }
+        time_string.serialize(serializer)
+    }
+}
+
+impl Serialize for TraceDeltaTime {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut time_string = String::new();
+        let secs = self.delta_time.as_secs();
+        if secs > 0 {
+            time_string.push_str(&secs.to_string());
+            time_string.push_str("s ");
+        }
+        let millis = self.delta_time.subsec_millis();
+        if millis > 0 {
+            time_string.push_str(&millis.to_string());
+            time_string.push_str("ms ");
+        }
+        let nanos = self.delta_time.subsec_micros() % 1000;
+        if nanos > 0 {
+            time_string.push_str(&nanos.to_string());
+            time_string.push_str("\u{03bc}s");
+        }
+        time_string.serialize(serializer)
+    }
 }
 
 impl Serialize for TraceObjectEvent {
@@ -95,14 +157,8 @@ impl Serialize for TraceObjectEvent {
     {
         let mut ser_map = serializer.serialize_map(Some(3))?;
         ser_map.serialize_entry("frame", &self.frame)?;
-        ser_map.serialize_entry(
-            "timestamp",
-            &(self.timestamp.as_millis() % u64::MAX as u128),
-        )?;
-        ser_map.serialize_entry(
-            "delta_time",
-            &(self.delta_time.as_micros() % u64::MAX as u128),
-        )?;
+        ser_map.serialize_entry("timestamp", &(self.timestamp))?;
+        ser_map.serialize_entry("delta_time", &(self.delta_time))?;
 
         ser_map.end()
     }
@@ -206,7 +262,9 @@ impl TraceObjectObservable {
                                 let store_lock = store.lock().await;
                                 let payload: Vec<TraceObjectEvent> =
                                     batch.iter().map(|key| store_lock[key].clone()).collect();
-                                app_handle.emit_all(&event_name, payload).expect("failed to emit trace event");
+                                app_handle
+                                    .emit_all(&event_name, payload)
+                                    .expect("failed to emit trace event");
                             }
                             break;
                         }
@@ -217,10 +275,13 @@ impl TraceObjectObservable {
                             if next_batch_time <= tokio::time::Instant::now() {
                                 // println!("emit {event_name} = {value:?}");
                                 let store_lock = store.lock().await;
-                                // FIXME consider using get instead of index [] for hashmaps to 
+                                // FIXME consider using get instead of index [] for hashmaps to
                                 // avoid task crashes!!
-                                let payload : Vec<TraceObjectEvent> = batch.iter().map(|key| store_lock[key].clone()).collect();                               
-                                app_handle.emit_all(&event_name, payload).expect("failed to emit trace event");
+                                let payload: Vec<TraceObjectEvent> =
+                                    batch.iter().map(|key| store_lock[key].clone()).collect();
+                                app_handle
+                                    .emit_all(&event_name, payload)
+                                    .expect("failed to emit trace event");
                                 batch.clear();
                                 next_batch_time = tokio::time::Instant::now() + min_interval;
                                 timeout = next_batch_time; //copy!
@@ -234,9 +295,12 @@ impl TraceObjectObservable {
                 Err(_elapsed) => {
                     if !batch.is_empty() {
                         let store_lock = store.lock().await;
-                        let payload : Vec<TraceObjectEvent> = batch.iter().map(|key| store_lock[key].clone()).collect();
+                        let payload: Vec<TraceObjectEvent> =
+                            batch.iter().map(|key| store_lock[key].clone()).collect();
                         batch.clear();
-                        app_handle.emit_all(&event_name, payload).expect("failed to emit trace event");
+                        app_handle
+                            .emit_all(&event_name, payload)
+                            .expect("failed to emit trace event");
                         next_batch_time = tokio::time::Instant::now() + min_interval;
                     }
                     timeout += Duration::from_secs(0xFFFF); //wait for ever!

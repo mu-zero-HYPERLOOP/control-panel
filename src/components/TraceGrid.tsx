@@ -1,4 +1,5 @@
-import { Box, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, Stack, Typography, Switch } from "@mui/material";
+import { Box, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, Stack } from "@mui/material";
+import { AccessAlarm, AddAlarm } from "@mui/icons-material";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
 import React, { useEffect, useState, useRef } from "react";
@@ -18,7 +19,6 @@ import { SignalFrame } from "../types/SignalFrame";
 import SignalFrameDetail from "./SignalFrameDetail";
 import { UndefinedFrame } from "../types/UndefinedFrame";
 import { ErrorFrame } from "../types/ErrorFrame";
-import { Virtuoso, TableVirtuoso, TableComponents } from 'react-virtuoso';
 
 import TraceSearchBar from "./TraceSearchBar";
 
@@ -337,25 +337,20 @@ function TraceGrid() {
               </TableHeaderCell>
               <TableHeaderCell align="left" onClick={() => toggleSortDirection('Time')}>
                 {timeAbsolute ? "Absolute Time" : "Relative Time"}
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Switch onChange={() => {setTimeAbsolute((absolute) => !absolute)}}
-              size="small" sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': {
-                    '&+.MuiSwitch-track': {
-                    opacity: 1,
-                    backgroundColor: 'white',
-                  }
-                },
-                '& .MuiSwitch-track': {
-                  opacity: 1,
-                  backgroundColor: 'white',
-                },
-                '& .MuiSwitch-thumb': {
-                  backgroundColor: '#00d6ba'
-                },
-              }} />
-          </Stack>
-                {sortField === 'Time' && (sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />)}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <IconButton onClick={(evt) => {
+                    setTimeAbsolute((t) => !t);
+                    evt.stopPropagation();
+                  }}>
+                    {timeAbsolute ? (
+                      <AccessAlarm />
+                    ) : (
+                      <AddAlarm />
+                    )}
+                  </IconButton>
+
+                  {sortField === 'Time' && (sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />)}
+                </Stack>
               </TableHeaderCell>
             </TableRow>
           </TableHead>
