@@ -1,4 +1,4 @@
-import { Box, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled } from "@mui/material";
+import { Box, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, styled, Stack, Typography, Switch } from "@mui/material";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
 import React, { useEffect, useState, useRef } from "react";
@@ -73,11 +73,10 @@ const IconButtonStyled = styled(IconButton)({
 
 interface SignalFrameRowProps {
   frame: SignalFrame,
-  timestamp: number,
-  deltaTime: number,
+  timestamp: string,
 }
 
-function SignalFrameRow({ frame, timestamp, deltaTime }: SignalFrameRowProps) {
+function SignalFrameRow({ frame, timestamp }: SignalFrameRowProps) {
   const [open, setOpen] = React.useState(false);
   return (
     <React.Fragment>
@@ -95,7 +94,7 @@ function SignalFrameRow({ frame, timestamp, deltaTime }: SignalFrameRowProps) {
         <SignalFrameCell align="left"><FrameId frame={frame} /></SignalFrameCell>
         <SignalFrameCell align="left"><FrameData frame={frame} /></SignalFrameCell>
         <SignalFrameCell align="left"><FrameDlc frame={frame} /></SignalFrameCell>
-        <SignalFrameCell align="left"><FrameTime timestamp={timestamp} deltaTime={deltaTime} /></SignalFrameCell>
+        <SignalFrameCell align="left"><FrameTime timestamp={timestamp} /></SignalFrameCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0, background: 'white' }} colSpan={6}>
@@ -112,12 +111,11 @@ function SignalFrameRow({ frame, timestamp, deltaTime }: SignalFrameRowProps) {
 
 interface TypeFrameRowProps {
   frame: TypeFrame,
-  timestamp: number,
-  deltaTime: number,
+  timestamp: string,
 }
 
 
-function TypeFrameRow({ frame, timestamp, deltaTime }: TypeFrameRowProps) {
+function TypeFrameRow({ frame, timestamp }: TypeFrameRowProps) {
   const [open, setOpen] = React.useState(false);
   return (
     <React.Fragment>
@@ -135,7 +133,7 @@ function TypeFrameRow({ frame, timestamp, deltaTime }: TypeFrameRowProps) {
         <TypeFrameCell align="left"><FrameId frame={frame} /></TypeFrameCell>
         <TypeFrameCell align="left"><FrameData frame={frame} /></TypeFrameCell>
         <TypeFrameCell align="left"><FrameDlc frame={frame} /></TypeFrameCell>
-        <TypeFrameCell align="left"><FrameTime timestamp={timestamp} deltaTime={deltaTime} /></TypeFrameCell>
+        <TypeFrameCell align="left"><FrameTime timestamp={timestamp} /></TypeFrameCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0,  background: 'white' }} colSpan={6}>
@@ -152,13 +150,12 @@ function TypeFrameRow({ frame, timestamp, deltaTime }: TypeFrameRowProps) {
 
 interface UndefinedFrameRowProps {
   frame: UndefinedFrame
-  timestamp: number,
-  deltaTime: number,
+  timestamp: string,
 }
 
 
 
-function UndefinedFrameRow({ frame, timestamp, deltaTime }: UndefinedFrameRowProps) {
+function UndefinedFrameRow({ frame, timestamp }: UndefinedFrameRowProps) {
   return (
     <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
       <UndefinedFrameCell>
@@ -171,19 +168,18 @@ function UndefinedFrameRow({ frame, timestamp, deltaTime }: UndefinedFrameRowPro
       <UndefinedFrameCell align="left"><FrameId frame={frame} /></UndefinedFrameCell>
       <UndefinedFrameCell align="left"><FrameData frame={frame} /></UndefinedFrameCell>
       <UndefinedFrameCell align="left"><FrameDlc frame={frame} /></UndefinedFrameCell>
-      <UndefinedFrameCell align="left"><FrameTime timestamp={timestamp} deltaTime={deltaTime} /></UndefinedFrameCell>
+      <UndefinedFrameCell align="left"><FrameTime timestamp={timestamp} /></UndefinedFrameCell>
     </TableRow>
   );
 }
 
 interface ErrorFrameRowProps {
   frame: ErrorFrame,
-  timestamp: number,
-  deltaTime: number,
+  timestamp: string,
 }
 
 
-function ErrorFrameRow({ frame, timestamp, deltaTime }: ErrorFrameRowProps) {
+function ErrorFrameRow({ frame, timestamp }: ErrorFrameRowProps) {
   return (
     <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
       <ErrorFrameCell>
@@ -196,28 +192,29 @@ function ErrorFrameRow({ frame, timestamp, deltaTime }: ErrorFrameRowProps) {
       <ErrorFrameCell align="left" />
       <ErrorFrameCell align="left"><FrameData frame={frame} /></ErrorFrameCell>
       <ErrorFrameCell align="left" />
-      <ErrorFrameCell align="left"><FrameTime timestamp={timestamp} deltaTime={deltaTime} /></ErrorFrameCell>
+      <ErrorFrameCell align="left"><FrameTime timestamp={timestamp} /></ErrorFrameCell>
     </TableRow>
   );
 }
 
 interface RowProps {
-  evt: TraceObjectEvent
+  evt: TraceObjectEvent,
+  timeAbsolute: boolean,
 }
 
-function Row({ evt }: RowProps) {
+function Row({ evt, timeAbsolute }: RowProps) {
   if (evt.frame.TypeFrame != undefined) {
     return <TypeFrameRow frame={evt.frame.TypeFrame}
-      timestamp={evt.timestamp} deltaTime={evt.delta_time} />
+      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
   } else if (evt.frame.SignalFrame != undefined) {
     return <SignalFrameRow frame={evt.frame.SignalFrame}
-      timestamp={evt.timestamp} deltaTime={evt.delta_time} />
+      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
   } else if (evt.frame.UndefinedFrame != undefined) {
     return <UndefinedFrameRow frame={evt.frame.UndefinedFrame}
-      timestamp={evt.timestamp} deltaTime={evt.delta_time} />
+      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
   } else if (evt.frame.ErrorFrame != undefined) {
     return <ErrorFrameRow frame={evt.frame.ErrorFrame}
-      timestamp={evt.timestamp} deltaTime={evt.delta_time} />
+      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
   }
 }
 
@@ -244,6 +241,7 @@ function TraceGrid() {
   const [filteredRows, setFilteredRows] = useState<TraceObjectEvent[]>([]);
   const { sortField, sortDirection, toggleSortDirection } = useSortState();
   const searchStringRef = useRef("");
+  const [timeAbsolute, setTimeAbsolute] = useState(false);
 
   function handle_event(event: TraceObjectEvent) {
     let index = rowsRef.current.findIndex((f) => {
@@ -338,14 +336,32 @@ function TraceGrid() {
                 {sortField === 'Dlc' && (sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />)}
               </TableHeaderCell>
               <TableHeaderCell align="left" onClick={() => toggleSortDirection('Time')}>
-                Time
+                {timeAbsolute ? "Absolute Time" : "Relative Time"}
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Switch onChange={() => {setTimeAbsolute((absolute) => !absolute)}}
+              size="small" sx={{
+                '& .MuiSwitch-switchBase.Mui-checked': {
+                    '&+.MuiSwitch-track': {
+                    opacity: 1,
+                    backgroundColor: 'white',
+                  }
+                },
+                '& .MuiSwitch-track': {
+                  opacity: 1,
+                  backgroundColor: 'white',
+                },
+                '& .MuiSwitch-thumb': {
+                  backgroundColor: '#00d6ba'
+                },
+              }} />
+          </Stack>
                 {sortField === 'Time' && (sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />)}
               </TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredRows.map((evt, index) => {
-              return <Row evt={evt} key={index} /> 
+              return <Row evt={evt} key={index} timeAbsolute={timeAbsolute} /> 
             })}
           </TableBody>
         </Table>
