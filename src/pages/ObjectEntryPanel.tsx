@@ -2,10 +2,11 @@ import {NodeInformation} from "../types/NodeInformation";
 import {useEffect, useState} from "react";
 import {ObjectEntryInformation} from "../types/ObjectEntryInformation.ts";
 import {invoke} from "@tauri-apps/api";
+import Graph from "../components/Graph.tsx";
 
 interface ObjectEntryPanelProps {
     node: NodeInformation,
-    name: string,
+    name: string,   // name of obejct entry
 }
 
 function ObjectEntryPanel({node, name}: ObjectEntryPanelProps) {
@@ -22,11 +23,12 @@ function ObjectEntryPanel({node, name}: ObjectEntryPanelProps) {
 
     useEffect(() => {
         asyncFetchNetworkInfo().catch(console.error);
-    });
+    }, [node, name]);
 
 
     return <>
         <h1> Hello {objectEntry.name} of {node.name} </h1>
+        <Graph nodeName={node.name} oeName={name} />
         <label>
             Value: <input name="SetObjectDictionaryValue"/>
         </label>

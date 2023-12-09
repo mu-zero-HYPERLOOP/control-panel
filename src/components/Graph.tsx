@@ -1,58 +1,69 @@
 import { invoke } from '@tauri-apps/api/tauri'
-import { listen } from "@tauri-apps/api/event";
+import { UnlistenFn, listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
-
-interface InitialGraphData {
-  values: Graphable[],
-  event: string
-}
-
-interface Graphable {
-  x: number,
-  y: number
-}
+import ObjectEntryListenHistoryResponse from '../types/ObjectEntryListenHistoryResponse';
+import ObjectEntryEvent from '../types/ObjectEntryEvent';
 
 interface GraphProps {
-  name: string,
+  nodeName: string,
+  oeName: string,
 }
 
 
-function Graph({name}: GraphProps) {
-  const [points, setPoints] = useState<Graphable[]>([]);
+function Graph({ nodeName, oeName }: GraphProps) {
+  const [history, setHistory] = useState<ObjectEntryEvent[]>([]);
 
 
   useEffect(() => {
-    invoke<InitialGraphData>('initialize_graph' , { nodeName: "ab", oeName: "cde" })
-      .then((initialGraphData) => {
-        setPoints(initialGraphData.values);
-      }).catch((error) => {
-        console.error("error initializing graph " + error);
-      });
+    console.log("graph useEffect called");
 
-    const handleRxPoint = (evt: any) => {
-        setPoints(oldVec => {
-          let newVec = oldVec.slice(1, oldVec.length);
+    const asyncGetInitialData = async () => {
+
+      const handleInitialGraphData = (initialGraphData: ObjectEntryListenHistoryResponse) => {
+        console.log("graph handling initial data");
+        setHistory(initialGraphData.history);
+        // set type of oe
+
+      };
+
+      let historyResponse = await invoke<ObjectEntryListenHistoryResponse>('listen_to_history_of_object_entry',
+        { nodeName: nodeName, objectEntryName: oeName });
+
+      handleInitialGraphData(historyResponse);
+
+      const handleNewEvent = (evt: any) => {
+        console.log("graph received batch event: " + evt);
+        setHistory(oldVec => {
+          let newVec = oldVec.slice(evt.payload.length);
           newVec.push(evt.payload);
           return newVec;
-        })};
+        })
+      };
 
-    let unsubscribe = listen<Graphable>(name , handleRxPoint);
+      console.log("graph listening to events of name: " + historyResponse.event_name);
+      return await listen<ObjectEntryEvent[]>(historyResponse.event_name, handleNewEvent);
 
-    // the lambda returned will be executed on cleanup of the effect.
-    return () => {
-        console.log("graph destructor called");
-        unsubscribe.then(f => f());
     };
-  }, []);
 
-    return <LineChart width={1200} height={500} data={points}>
-      <Line type="linear" dataKey="y" stroke="#ff0000" isAnimationActive={false} dot={false} />
-      <CartesianGrid stroke="#00ff00" strokeDasharray="5 5"/>
-      <XAxis dataKey="x"/>
-      <YAxis />
-      <Tooltip />
-    </LineChart>
+    let unsubscribe = asyncGetInitialData();
+
+
+    return () => {
+      console.log("graph destructor called");
+      unsubscribe.then(f => f()).catch(console.error);
+    };
+  }, [nodeName, oeName]);
+
+  console.log("graph rendered");
+  return <>kdsla</>
+  return <LineChart width={1200} height={500} data={history}>
+    <Line type="linear" dataKey="value" stroke="black" isAnimationActive={false} dot={false} />
+    <CartesianGrid stroke="secondary" strokeDasharray="5 5" />
+    <XAxis dataKey="timestamp" />
+    <YAxis />
+    <Tooltip />
+  </LineChart>
 }
 
 export default Graph;
