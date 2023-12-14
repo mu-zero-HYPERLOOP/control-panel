@@ -21,7 +21,7 @@ function Graph({ nodeName, oeName }: GraphProps) {
       .curve(d3.curveBasis)
       .x((d, i: number) => { 
         const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
-        return xScaleRef.current(oeEvt.timestamp)})
+        return xScaleRef.current(i)})
       .y((d, i: number) => { 
         const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
         return yScaleRef.current(oeEvt.value as number)});
@@ -51,12 +51,15 @@ function Graph({ nodeName, oeName }: GraphProps) {
         })
         // redraw chart line
         let path = d3.select(svgRef.current).select("g g path.line")
-          .attr("d", (d) => line(d))
+          .attr("d", line(history))
           .attr("transform", null);
-        console.log(path)
-        d3.active(this)
-          .attr("transform", "translate(" + xScaleRef.current(0) + ",0)")
-          .transition();
+        path
+          .attr("transform", "translate(" + xScaleRef.current(10) + ",0)")
+          .transition()
+          .on("start", () => { console.log("transition start listener") })
+          .on("end", () => {console.log("transition ended")})
+          .on("interrupt", () => {console.log("transition interrupted")})
+          .on("cancel", () => {console.log("transition canceled")});
       };
 
       let unsubscribe = await listen<ObjectEntryHistoryEvent>(historyResponse.event_name, handleNewEvent);
@@ -91,16 +94,11 @@ function Graph({ nodeName, oeName }: GraphProps) {
 
     // setting up scaling
     xScaleRef.current = d3.scaleLinear()
+      .domain([0, 100])
       .range([0, width]);
     yScaleRef.current = d3.scaleLinear()
       .domain([0, 200])
       .range([height, 0]);
-
-    // setting the axes
-    const xAxis = d3.axisBottom(xScaleRef.current)
-      .tickFormat(d3.timeFormat("%M:%S"));
-
-    // setting up the data for svg
 
     // set up clipping of plot outside of chart rectangle
     svgGroup.append("defs").append("clipPath")
@@ -124,7 +122,8 @@ function Graph({ nodeName, oeName }: GraphProps) {
       .attr("class", "line")
       .transition()
       .duration(500)
-      .ease(d3.easeLinear);
+      .ease(d3.easeLinear)
+      .on("start", () => { console.log("transition start useEffect") });
 
     if (history.length > 0) {
     }
