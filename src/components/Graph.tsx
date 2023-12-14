@@ -14,9 +14,18 @@ interface GraphProps {
 
 function Graph({ nodeName, oeName }: GraphProps) {
   const [history, setHistory] = useState<ObjectEntryEvent[]>([]);
-  const svgRef = useRef("graphRef");
-  const lineRef = useRef<any>();
+  const svgRef = useRef(null); // see react docs for DOM manipulation with refs
   const xScaleRef = useRef<d3.ScaleLinear<number, number, never>>(d3.scaleLinear().range([0, 100]));
+  const yScaleRef = useRef<d3.ScaleLinear<number, number, never>>(d3.scaleLinear().range([0, 100]));
+  const line = d3.line()
+      .curve(d3.curveBasis)
+      .x((d, i: number) => { 
+        const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
+        return xScaleRef.current(oeEvt.timestamp)})
+      .y((d, i: number) => { 
+        const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
+        return yScaleRef.current(oeEvt.value as number)});
+
 
   const frameSize: number = 1000; // in milliseconds
   const minInterval: number = 1000; // in milliseconds
@@ -41,12 +50,13 @@ function Graph({ nodeName, oeName }: GraphProps) {
           return newVec;
         })
         // redraw chart line
-        d3.select("path")
-          .attr("d", lineRef.current)
+        let path = d3.select(svgRef.current).select("g g path.line")
+          .attr("d", (d) => line(d))
           .attr("transform", null);
-        // d3.active("path")
-        //   .attr("transform", "translate(" + xScaleRef.current(0) + ",0)")
-        //   .transition();
+        console.log(path)
+        d3.active(this)
+          .attr("transform", "translate(" + xScaleRef.current(0) + ",0)")
+          .transition();
       };
 
       let unsubscribe = await listen<ObjectEntryHistoryEvent>(historyResponse.event_name, handleNewEvent);
@@ -68,47 +78,46 @@ function Graph({ nodeName, oeName }: GraphProps) {
   useEffect(() => {
     console.log("d3 useEffect called");
     // setting up svg
-    const w = 700;
-    const h = 300;
+    const width = 700;
+    const height = 300;
     const margin = 40;
     const svg = d3.select(svgRef.current)
-      .attr("width", w)
-      .attr("height", h)
+      .attr("width", width)
+      .attr("height", height)
       .style("background", "#d3d3d3")
       .style("margin", margin)
       .style("overflow", "visible")
-    const group = svg.append("g");
+    const svgGroup = svg.append("g");
 
     // setting up scaling
     xScaleRef.current = d3.scaleLinear()
-      .range([0, w]);
-    const yScale = d3.scaleLinear()
-      .domain([200, 0])
-      .range([h, 0]);
+      .range([0, width]);
+    yScaleRef.current = d3.scaleLinear()
+      .domain([0, 200])
+      .range([height, 0]);
 
     // setting the axes
     const xAxis = d3.axisBottom(xScaleRef.current)
       .tickFormat(d3.timeFormat("%M:%S"));
 
-    lineRef.current = d3.line()
-      .curve(d3.curveBasis)
-      .x((d: ObjectEntryEvent, i: number) => { return xScale(d.timestamp)})
-      .y((d: ObjectEntryEvent, i: number) => { return yScale(d.value)});
     // setting up the data for svg
 
-    group.append("defs").append("clipPath")
+    // set up clipping of plot outside of chart rectangle
+    svgGroup.append("defs").append("clipPath")
       .attr("id", "clip")
       .append("rect")
-      .attr("width", w)
-      .attr("height", h);
-    group.append("g")
+      .attr("width", width)
+      .attr("height", height);
+    // create subgroups for x- and y-axis
+    svgGroup.append("g")
       .attr("class", "axis axis--x")
-      .attr("transform", "translate(0," + h + ")")
+      .attr("transform", "translate(0," + height + ")")
       .call(d3.axisBottom(xScaleRef.current));
-    group.append("g")
+    svgGroup.append("g")
       .attr("class", "axis axis--y")
-      .call(d3.axisLeft(yScale));
-    group.append("g")
+      .call(d3.axisLeft(yScaleRef.current));
+    // create subgroup for actual line of chart (path)
+    svgGroup.append("g")
       .attr("clip-path", "url(#clip)")
       .append("path")
       .datum(history)
@@ -120,7 +129,7 @@ function Graph({ nodeName, oeName }: GraphProps) {
     if (history.length > 0) {
     }
 
-  }, [history]);
+  }, []);
 
   return (<div>
     <svg ref={svgRef}></svg>
