@@ -14,21 +14,22 @@ interface GraphProps {
 }
 
 function Graph({ nodeName, oeName }: GraphProps) {
-  const [history, setHistory] = useState<ObjectEntryEvent[]>([]);
+  const historyRef = useRef<ObjectEntryEvent[]>([]);
   const svgRef = useRef(null); // see react docs for DOM manipulation with refs
+  const translateRef = useRef(0);
 
 
-  const frameSize: number = 1000; // in milliseconds
+  const frameSize: number = 10000; // in milliseconds
   const minInterval: number = 1000; // in milliseconds
 
   const svgWidth = 700;
   const svgHeight = 300;
 
-  const xScale = d3.scaleLinear().range([0, svgWidth]).domain([0, 40]);
-  const yScale = d3.scaleLinear().range([svgHeight, 0]).domain([0, 200]);
+  const xScale = d3.scaleLinear().range([0, svgWidth]).domain([0, 120]);
+  const yScale = d3.scaleLinear().range([svgHeight, 0]).domain([0, 150]);
 
   const line = d3.line()
-    .curve(d3.curveBasis)
+    //.curve(d3.curveBasis)
     .x((d, i: number) => { 
       const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
       return xScale(i)})
@@ -43,26 +44,31 @@ function Graph({ nodeName, oeName }: GraphProps) {
       let historyResponse = await invoke<ObjectEntryListenHistoryResponse>('listen_to_history_of_object_entry',
         { nodeName: nodeName, objectEntryName: oeName, frameSize, minInterval });
 
-      setHistory(historyResponse.history);
-      console.log("history response: " + historyResponse);
+      historyRef.current = historyResponse.history;
 
       const handleNewEvent = (evt: Event<ObjectEntryHistoryEvent>) => {
-        setHistory(oldVec => {
-          //d3.select(svgRef.current).selectAll("g g path")
-          //  .attr("d", line(history));
-          //console.log(d3.select(svgRef.current).selectAll("g g path"));
-          //console.log(line(history));
-
-
           // payload is a vector!
           // interesstingly concat performs a lot worse than push
           //return oldVec.concat(evt.payload) 
-          let newVec = oldVec.slice(evt.payload.deprecated_count);
+          let newVec = historyRef.current.slice();
           newVec.push(...evt.payload.new_values);
-          console.log("history: " + history);
-          console.log("event: " + evt);
-          return newVec;
-        });
+
+          d3.select(svgRef.current).selectAll("g g path.line")
+            .datum(line(newVec))
+            
+                  .attr("d", line(newVec))
+                  .attr("transform", null)
+                .call(update => update.transition()
+                  .ease(d3.easeQuadOut)
+                  .attr("transform", "translate(" + -(xScale(evt.payload.deprecated_count)) + ", 0)")
+                  .duration(minInterval / 2)
+                  )
+            translateRef.current -= 50;
+
+          newVec = newVec.slice(evt.payload.deprecated_count);
+
+          historyRef.current = newVec;
+        
       };
 
       let unsubscribe = await listen<ObjectEntryHistoryEvent>(historyResponse.event_name, handleNewEvent);
@@ -92,13 +98,15 @@ function Graph({ nodeName, oeName }: GraphProps) {
     svgGroup.append("g")
       .attr("clip-path", "url(#clip)")
       .append("path")
+      .datum(historyRef.current)
       .attr("class", "line")
-      .attr("fill", "green")
+      .attr("fill", "#888888")
       .attr("stroke", "red");
 
   }, []);
 
-  return (<svg ref={svgRef} width={svgWidth} height={svgHeight} color="black"></svg>);
+  return (<div><svg ref={svgRef} width={svgWidth} height={svgHeight} color="black"></svg></div>);
+
 
 
 }
