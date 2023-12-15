@@ -1,11 +1,12 @@
 import { invoke } from '@tauri-apps/api/tauri'
 import { listen, Event, UnlistenFn } from "@tauri-apps/api/event";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import ObjectEntryListenHistoryResponse from '../types/ObjectEntryListenHistoryResponse';
 import ObjectEntryEvent from '../types/ObjectEntryEvent';
 import { ObjectEntryHistoryEvent } from '../types/ObjectEntryHistoryEvent';
 import * as d3 from "d3";
+import { duration } from '@mui/material';
 
 interface GraphProps {
   nodeName: string,
@@ -15,21 +16,25 @@ interface GraphProps {
 function Graph({ nodeName, oeName }: GraphProps) {
   const [history, setHistory] = useState<ObjectEntryEvent[]>([]);
   const svgRef = useRef(null); // see react docs for DOM manipulation with refs
-  const xScaleRef = useRef<d3.ScaleLinear<number, number, never>>(d3.scaleLinear().range([0, 100]));
-  const yScaleRef = useRef<d3.ScaleLinear<number, number, never>>(d3.scaleLinear().range([0, 100]));
-  const line = d3.line()
-      .curve(d3.curveBasis)
-      .x((d, i: number) => { 
-        const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
-        return xScaleRef.current(i)})
-      .y((d, i: number) => { 
-        const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
-        return yScaleRef.current(oeEvt.value as number)});
 
 
   const frameSize: number = 1000; // in milliseconds
   const minInterval: number = 1000; // in milliseconds
 
+  const svgWidth = 700;
+  const svgHeight = 300;
+
+  const xScale = d3.scaleLinear().range([0, svgWidth]).domain([0, 40]);
+  const yScale = d3.scaleLinear().range([svgHeight, 0]).domain([0, 200]);
+
+  const line = d3.line()
+    .curve(d3.curveBasis)
+    .x((d, i: number) => { 
+      const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
+      return xScale(i)})
+    .y((d, i: number) => { 
+      const oeEvt: ObjectEntryEvent = (d as unknown) as ObjectEntryEvent;
+      return yScale(oeEvt.value as number)});
 
   useEffect(() => {
 
@@ -39,27 +44,25 @@ function Graph({ nodeName, oeName }: GraphProps) {
         { nodeName: nodeName, objectEntryName: oeName, frameSize, minInterval });
 
       setHistory(historyResponse.history);
+      console.log("history response: " + historyResponse);
 
       const handleNewEvent = (evt: Event<ObjectEntryHistoryEvent>) => {
         setHistory(oldVec => {
+          //d3.select(svgRef.current).selectAll("g g path")
+          //  .attr("d", line(history));
+          //console.log(d3.select(svgRef.current).selectAll("g g path"));
+          //console.log(line(history));
+
+
           // payload is a vector!
           // interesstingly concat performs a lot worse than push
           //return oldVec.concat(evt.payload) 
           let newVec = oldVec.slice(evt.payload.deprecated_count);
           newVec.push(...evt.payload.new_values);
+          console.log("history: " + history);
+          console.log("event: " + evt);
           return newVec;
-        })
-        // redraw chart line
-        let path = d3.select(svgRef.current).select("g g path.line")
-          .attr("d", line(history))
-          .attr("transform", null);
-        path
-          .attr("transform", "translate(" + xScaleRef.current(10) + ",0)")
-          .transition()
-          .on("start", () => { console.log("transition start listener") })
-          .on("end", () => {console.log("transition ended")})
-          .on("interrupt", () => {console.log("transition interrupted")})
-          .on("cancel", () => {console.log("transition canceled")});
+        });
       };
 
       let unsubscribe = await listen<ObjectEntryHistoryEvent>(historyResponse.event_name, handleNewEvent);
@@ -79,69 +82,25 @@ function Graph({ nodeName, oeName }: GraphProps) {
   }, [nodeName, oeName]);
 
   useEffect(() => {
-    console.log("d3 useEffect called");
-    // setting up svg
-    const width = 700;
-    const height = 300;
-    const margin = 40;
-    const svg = d3.select(svgRef.current)
-      .attr("width", width)
-      .attr("height", height)
-      .style("background", "#d3d3d3")
-      .style("margin", margin)
-      .style("overflow", "visible")
+    let svg = d3.select(svgRef.current);
+    svg.style("background", "#888888");
+
+    const t = d3.transition("test").duration(minInterval).ease(d3.easeLinear);
+
     const svgGroup = svg.append("g");
 
-    // setting up scaling
-    xScaleRef.current = d3.scaleLinear()
-      .domain([0, 100])
-      .range([0, width]);
-    yScaleRef.current = d3.scaleLinear()
-      .domain([0, 200])
-      .range([height, 0]);
-
-    // set up clipping of plot outside of chart rectangle
-    svgGroup.append("defs").append("clipPath")
-      .attr("id", "clip")
-      .append("rect")
-      .attr("width", width)
-      .attr("height", height);
-    // create subgroups for x- and y-axis
-    svgGroup.append("g")
-      .attr("class", "axis axis--x")
-      .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(xScaleRef.current));
-    svgGroup.append("g")
-      .attr("class", "axis axis--y")
-      .call(d3.axisLeft(yScaleRef.current));
-    // create subgroup for actual line of chart (path)
     svgGroup.append("g")
       .attr("clip-path", "url(#clip)")
       .append("path")
-      .datum(history)
       .attr("class", "line")
-      .transition()
-      .duration(500)
-      .ease(d3.easeLinear)
-      .on("start", () => { console.log("transition start useEffect") });
-
-    if (history.length > 0) {
-    }
+      .attr("fill", "green")
+      .attr("stroke", "red");
 
   }, []);
 
-  return (<div>
-    <svg ref={svgRef}></svg>
+  return (<svg ref={svgRef} width={svgWidth} height={svgHeight} color="black"></svg>);
 
-  </div>);
 
-  return <LineChart width={600} height={500} data={history}>
-    <Line type="linear" dataKey="value" stroke="black" isAnimationActive={false} dot={false} />
-    <CartesianGrid stroke="secondary" strokeDasharray="5 5" />
-    <XAxis dataKey="timestamp" />
-    <YAxis />
-    <Tooltip />
-  </LineChart>
 }
 
 export default Graph;
