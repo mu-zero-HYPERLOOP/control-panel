@@ -2,12 +2,12 @@ import {NodeInformation} from "../types/NodeInformation";
 import {useEffect, useState} from "react";
 import {ObjectEntryInformation} from "../types/ObjectEntryInformation.ts";
 import {invoke} from "@tauri-apps/api";
-import Graph from "../components/Graph.tsx";
 import ObjectEntryListenLatestResponse from "../types/ObjectEntryListenLatestResponse.ts";
 import ObjectEntryEvent, {ObjectEntryComposite} from "../types/ObjectEntryEvent.ts";
 import {Event, listen} from "@tauri-apps/api/event";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
+import ObjectEntryGraph from "../components/Graph.tsx";
 
 interface ObjectEntryPanelProps {
     node: NodeInformation,
@@ -89,7 +89,7 @@ function ObjectEntryPanel({node, name}: Readonly<ObjectEntryPanelProps>) {
     useEffect(() => {
         asyncFetchNetworkInfo().catch(console.error);
         let unlisten = asyncListenToEvents();
-
+        
         return () => {
             invoke("unlisten_from_latest_object_entry_value", {
                 nodeName: node.name,
@@ -100,9 +100,7 @@ function ObjectEntryPanel({node, name}: Readonly<ObjectEntryPanelProps>) {
     }, [node, name]);
 
     return <>
-        <h1> Hello {objectEntryInfo.name} of {node.name} </h1>
-        <ObjectEntryValue currentValue={objectEntryEvent.value} node={node.name} objectEntry={name}/>
-        <Graph nodeName={node.name} oeName={name}/>
+        <ObjectEntryGraph nodeName={node.name} oeName={name}/>
     </>
 }
 
