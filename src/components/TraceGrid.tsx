@@ -19,7 +19,7 @@ import { SignalFrame } from "../types/SignalFrame";
 import SignalFrameDetail from "./SignalFrameDetail";
 import { UndefinedFrame } from "../types/UndefinedFrame";
 import { ErrorFrame } from "../types/ErrorFrame";
-
+import { levenshteinDistance } from "../utils/levenshteinDistance";
 import TraceSearchBar from "./TraceSearchBar";
 
 // Main Paper component with gradient background
@@ -267,6 +267,13 @@ function TraceGrid() {
     }
   }
 
+  function highlightText(text: string, query: string) {
+    // Simplified example. You might need a more complex logic
+    // to highlight based on the Levenshtein distance
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<b>$1</b>');
+  }
+
   useEffect(() => {
     invoke<TraceObjectEvent[]>("listen_to_trace").then((traceObjectEvents) => {
       for (let traceObjectEvent of traceObjectEvents) {
@@ -293,20 +300,29 @@ function TraceGrid() {
 
   const filterRows = (searchText: string) => {
     searchStringRef.current = searchText;
-    if (searchText === "") {
-      setFilteredRows(rowsRef.current.slice());
-    } else {
-      const filtered = rowsRef.current.filter((o) => {
-        const frameName =
-          (o.frame.TypeFrame?.name ||
-            o.frame.SignalFrame?.name ||
-            o.frame.ErrorFrame?.name ||
-            "") as string; // Handle all possible frame types and cast to string
-        return frameName.includes(searchText);
-      });
-      setFilteredRows(filtered);
-    }
+  
+    const searchThreshold = 3; // Set a suitable threshold for Levenshtein distance
+  
+    const filtered = rowsRef.current.filter(o => {
+      const frameName = o.frame.TypeFrame?.name || o.frame.SignalFrame?.name || o.frame.ErrorFrame?.name || "";
+      const frameId = o.frame.TypeFrame?.id || o.frame.SignalFrame?.id || "";
+  
+      const distanceName = levenshteinDistance(searchText, frameName);
+      const distanceId = levenshteinDistance(searchText, frameId.toString());
+  
+      return distanceName <= searchThreshold || distanceId <= searchThreshold;
+    }).map(o => {
+      // Assuming highlightText function returns the string with highlighted portions
+      return {
+        ...o,
+        highlightedName: highlightText(o.frame.TypeFrame?.name || o.frame.SignalFrame?.name || o.frame.ErrorFrame?.name || "", searchText),
+        highlightedId: highlightText((o.frame.TypeFrame?.id || o.frame.SignalFrame?.id || "").toString(), searchText)
+      };
+    });
+  
+    setFilteredRows(filtered);
   };
+  
 
   // maxHeight : 800 sucks asss
   return (
@@ -354,7 +370,12 @@ function TraceGrid() {
           </TableHead>
           <TableBody>
             {filteredRows.map((evt, index) => {
-              return <Row evt={evt} key={index} timeAbsolute={timeAbsolute} /> 
+              return (
+                <Row 
+                  evt={evt} 
+                  key={index} 
+                  timeAbsolute={timeAbsolute} /> 
+              );
             })}
           </TableBody>
         </Table>
