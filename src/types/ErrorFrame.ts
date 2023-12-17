@@ -1,8 +1,9 @@
 
 
 export interface ErrorFrame {
-  name : string,
-  description : string,
-  data : number,
+  id?: number;
+  name : string;
+  description : string;
+  data : number;
 }
 

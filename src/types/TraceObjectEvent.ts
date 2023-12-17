@@ -4,4 +4,6 @@ export interface TraceObjectEvent {
   frame: Frame,
   timestamp: string,
   delta_time: string,
+  highlightedName: string,
+  highlightedId: string
 }

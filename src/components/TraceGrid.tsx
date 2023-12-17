@@ -21,6 +21,7 @@ import { UndefinedFrame } from "../types/UndefinedFrame";
 import { ErrorFrame } from "../types/ErrorFrame";
 import { levenshteinDistance } from "../utils/levenshteinDistance";
 import TraceSearchBar from "./TraceSearchBar";
+import Frame from "../types/Frame";
 
 // Main Paper component with gradient background
 const StyledPaper = styled(Paper)({
@@ -70,10 +71,11 @@ const IconButtonStyled = styled(IconButton)({
 });
 
 
-
 interface SignalFrameRowProps {
   frame: SignalFrame,
   timestamp: string,
+  highlightedName: string;
+  highlightedId: string;
 }
 
 function SignalFrameRow({ frame, timestamp }: SignalFrameRowProps) {
@@ -112,6 +114,8 @@ function SignalFrameRow({ frame, timestamp }: SignalFrameRowProps) {
 interface TypeFrameRowProps {
   frame: TypeFrame,
   timestamp: string,
+  highlightedName: string;
+  highlightedId: string;
 }
 
 
@@ -151,6 +155,8 @@ function TypeFrameRow({ frame, timestamp }: TypeFrameRowProps) {
 interface UndefinedFrameRowProps {
   frame: UndefinedFrame
   timestamp: string,
+  highlightedName: string;
+  highlightedId: string;
 }
 
 
@@ -176,6 +182,8 @@ function UndefinedFrameRow({ frame, timestamp }: UndefinedFrameRowProps) {
 interface ErrorFrameRowProps {
   frame: ErrorFrame,
   timestamp: string,
+  highlightedName: string;
+  highlightedId: string;
 }
 
 
@@ -196,25 +204,52 @@ function ErrorFrameRow({ frame, timestamp }: ErrorFrameRowProps) {
     </TableRow>
   );
 }
-
 interface RowProps {
-  evt: TraceObjectEvent,
-  timeAbsolute: boolean,
+  evt: TraceObjectEvent;
+  timeAbsolute: boolean;
+  highlightedName: string;
+  highlightedId: string;
 }
 
-function Row({ evt, timeAbsolute }: RowProps) {
+
+function Row({ evt, timeAbsolute, highlightedName, highlightedId }: RowProps) {
   if (evt.frame.TypeFrame != undefined) {
-    return <TypeFrameRow frame={evt.frame.TypeFrame}
-      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
+    return (
+      <TypeFrameRow 
+        frame={evt.frame.TypeFrame}
+        timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} 
+        highlightedName={highlightedName}
+        highlightedId={highlightedId}
+      /> 
+    );
   } else if (evt.frame.SignalFrame != undefined) {
-    return <SignalFrameRow frame={evt.frame.SignalFrame}
-      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
+    return (
+      <SignalFrameRow 
+        frame={evt.frame.SignalFrame}
+        timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} 
+        highlightedName={highlightedName}
+        highlightedId={highlightedId}
+      />
+    );
   } else if (evt.frame.UndefinedFrame != undefined) {
-    return <UndefinedFrameRow frame={evt.frame.UndefinedFrame}
-      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
+    return (
+       <UndefinedFrameRow 
+        frame={evt.frame.UndefinedFrame}
+        timestamp={timeAbsolute ? evt.timestamp : evt.delta_time}
+        highlightedName={highlightedName}
+        highlightedId={highlightedId}
+      />
+    );
+     
   } else if (evt.frame.ErrorFrame != undefined) {
-    return <ErrorFrameRow frame={evt.frame.ErrorFrame}
-      timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} />
+    return (
+      <ErrorFrameRow 
+        frame={evt.frame.ErrorFrame}
+        timestamp={timeAbsolute ? evt.timestamp : evt.delta_time} 
+        highlightedName={highlightedName}
+        highlightedId={highlightedId}
+      />
+    ); 
   }
 }
 
@@ -298,30 +333,50 @@ function TraceGrid() {
     }
   }, []);
 
-  const filterRows = (searchText: string) => {
-    searchStringRef.current = searchText;
-  
-    const searchThreshold = 3; // Set a suitable threshold for Levenshtein distance
-  
-    const filtered = rowsRef.current.filter(o => {
-      const frameName = o.frame.TypeFrame?.name || o.frame.SignalFrame?.name || o.frame.ErrorFrame?.name || "";
-      const frameId = o.frame.TypeFrame?.id || o.frame.SignalFrame?.id || "";
-  
-      const distanceName = levenshteinDistance(searchText, frameName);
-      const distanceId = levenshteinDistance(searchText, frameId.toString());
-  
-      return distanceName <= searchThreshold || distanceId <= searchThreshold;
-    }).map(o => {
-      // Assuming highlightText function returns the string with highlighted portions
-      return {
-        ...o,
-        highlightedName: highlightText(o.frame.TypeFrame?.name || o.frame.SignalFrame?.name || o.frame.ErrorFrame?.name || "", searchText),
-        highlightedId: highlightText((o.frame.TypeFrame?.id || o.frame.SignalFrame?.id || "").toString(), searchText)
-      };
-    });
-  
-    setFilteredRows(filtered);
+  const getFrameNameAndId = (frame: Frame) => {
+    let name = '';
+    let id = '';
+
+    if (frame.TypeFrame) {
+      name = frame.TypeFrame.name;
+      id = frame.TypeFrame.id.toString();
+    } else if (frame.SignalFrame) {
+      name = frame.SignalFrame.name;
+      id = frame.SignalFrame.id.toString();
+    } else if (frame.UndefinedFrame) {
+      name = frame.UndefinedFrame.name || '';
+      id = frame.UndefinedFrame.id.toString();
+    } else if (frame.ErrorFrame) {
+      name = frame.ErrorFrame.name;
+      id = frame.ErrorFrame.id?.toString() || '';
+    }
+
+    return { name, id };
   };
+
+  const filterRows = (searchText: string) => {
+  searchStringRef.current = searchText;
+  const searchThreshold = 3;
+
+  const filtered = rowsRef.current.reduce<TraceObjectEvent[]>((acc, o) => {
+    const { name, id } = getFrameNameAndId(o.frame);
+
+    const distanceName = levenshteinDistance(searchText, name);
+    const distanceId = levenshteinDistance(searchText, id.toString());
+
+    if (distanceName <= searchThreshold || distanceId <= searchThreshold) {
+      acc.push({
+        ...o,
+        highlightedName: highlightText(name, searchText),
+        highlightedId: highlightText(id.toString(), searchText)
+      });
+    }
+    return acc;
+  }, []);
+
+  setFilteredRows(filtered);
+};
+
   
 
   // maxHeight : 800 sucks asss
@@ -374,7 +429,9 @@ function TraceGrid() {
                 <Row 
                   evt={evt} 
                   key={index} 
-                  timeAbsolute={timeAbsolute} /> 
+                  timeAbsolute={timeAbsolute} 
+                  highlightedName={evt.highlightedName}
+                  highlightedId={evt.highlightedId} /> 
               );
             })}
           </TableBody>
